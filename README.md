@@ -1,4 +1,4 @@
-# cloud-itonami-9512
+# cloud-itonami-isic-9512
 
 Open Business Blueprint for **ISIC Rev.5 9512**: Repair of communication equipment.
 

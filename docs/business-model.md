@@ -2,7 +2,7 @@
 
 ## Classification
 
-- Repository: `cloud-itonami-9512`
+- Repository: `cloud-itonami-isic-9512`
 - ISIC Rev.5: `9512`
 - Activity: repair of communication equipment -- diagnosing and repairing telephones, radios and other communication devices for customers
 - Social impact: community access, data sovereignty, transparent audit

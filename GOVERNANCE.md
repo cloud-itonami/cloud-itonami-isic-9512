@@ -1,6 +1,6 @@
 # Governance
 
-`cloud-itonami-9512` is an OSS open-business blueprint for repair of communication equipment -- diagnosing and repairing telephones, radios and other communication devices for customers.
+`cloud-itonami-isic-9512` is an OSS open-business blueprint for repair of communication equipment -- diagnosing and repairing telephones, radios and other communication devices for customers.
 Governance covers both the capability layer and the operator model.
 
 ## Maintainers

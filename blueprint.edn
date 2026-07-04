@@ -1,4 +1,4 @@
-{:itonami.blueprint/id "cloud-itonami-9512"
+{:itonami.blueprint/id "cloud-itonami-isic-9512"
  :itonami.blueprint/name "Repair of communication equipment"
  :itonami.blueprint/isic-rev5 "9512"
  :itonami.blueprint/domain :services/repair-communication-equipment
