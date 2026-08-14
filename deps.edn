@@ -1,4 +1,7 @@
-{:paths ["src"]
+{;; "resources" carries resources/commrepair/console.css, the operator
+ ;; console's stylesheet (DADS tokens + shared skin, vendored -- see that
+ ;; file's own header for provenance).
+ :paths ["src" "resources"]
  ;; langgraph brings langchain transitively (both zero-/single-dep,
  ;; all .cljc -> portable to JVM / SCI / ClojureScript / GraalVM). It lives
  ;; in the kotoba-lang org of this workspace (transferred + renamed from
@@ -6,18 +9,14 @@
  ;; repo is standalone (forkable outside the workspace); the :local/root
  ;; paths only resolve inside the monorepo checkout — a standalone fork
  ;; should override them with git coordinates.
+ ;; NOTE: deliberately no jp-go-dds dependency. The operator console needs 19
+ ;; DADS custom properties; taking them as a git dep pulled 67KB of stylesheet
+ ;; to use 19 tokens AND made `clojure -M:dev:render-html` network-dependent.
+ ;; The tokens are vendored instead (resources/commrepair/console.css), copied
+ ;; from the DADS copy this repo already ships inside docs/index.html, and
+ ;; commrepair.render-html asserts CSS-variable closure at build time.
  :deps {io.github.kotoba-lang/langgraph
-        {:local/root "../../kotoba-lang/langgraph"}
-        ;; jp-go-dds — デジタル庁デザインシステム(DADS). Consumed as a GIT dep,
-        ;; not :local/root: the library's own deps (html/css/kotoba-kir) are git
-        ;; coordinates, and a :local/root consumer resolves them relative to the
-        ;; git cache rather than this checkout. `jp-go-dds.skin/dds+skin` is the
-        ;; stylesheet `commrepair.render-html` streams into the console's
-        ;; <style>. Same pin as the sibling repair-shop actor
-        ;; cloud-itonami-isic-9522.
-        io.github.kotoba-lang/jp-go-digital-design-system
-        {:git/url "https://github.com/kotoba-lang/jp-go-digital-design-system"
-         :git/sha "83db99546eabc53613ae826ea41d1533a3c574af"}}
+        {:local/root "../../kotoba-lang/langgraph"}}
  :aliases
  {;; offline workspace dev -- pin transitive langchain to local checkout
   :dev {:override-deps

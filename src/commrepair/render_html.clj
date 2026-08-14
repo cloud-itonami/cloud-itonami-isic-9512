@@ -30,11 +30,18 @@
   `commrepair.phase/phases`, `commrepair.phase/write-ops`) is sorted
   explicitly. Two consecutive runs are byte-identical.
 
+  Offline: the stylesheet is this repo's own
+  `resources/commrepair/console.css` -- DADS tokens copied from the copy
+  already vendored into `docs/index.html` plus the shared console skin --
+  so the build has no network or git dependency, and the console cannot
+  drift away from the product face. Two build-time invariants guard the
+  output: at least one HARD governor hold, and CSS custom-property
+  closure (see `assert-css-closed!`).
+
   Usage: `clojure -M:dev:render-html [out-file]`
   (default `docs/samples/operator-console.html`)."
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [jp-go-dds.skin]
             [langgraph.graph :as g]
             [commrepair.facts :as facts]
             [commrepair.governor :as governor]
@@ -42,6 +49,40 @@
             [commrepair.phase :as phase]
             [commrepair.registry :as registry]
             [commrepair.store :as store]))
+
+;; ----------------------------- style -----------------------------
+
+(def ^:private console-css
+  "DADS primitives + the shared operator-console skin, read from this
+  repo's own `resources/commrepair/console.css`.
+
+  Deliberately NOT a `jp-go-dds` git dependency. The values there were
+  copied out of the DADS stylesheet this repo already vendors into
+  `docs/index.html`, so the console is styled by the same tokens as the
+  product face and the build needs no network at all. `assert-css-closed!`
+  keeps that honest at build time."
+  (let [r (io/resource "commrepair/console.css")]
+    (when-not r
+      (throw (ex-info "resources/commrepair/console.css is not on the classpath — the console would render unstyled"
+                      {:resource "commrepair/console.css"})))
+    (slurp r)))
+
+(defn- css-vars-referenced [s] (set (re-seq #"(?<=var\()--[A-Za-z0-9-]+" s)))
+(defn- css-vars-defined [s] (set (re-seq #"--[A-Za-z0-9-]+(?=\s*:)" s)))
+
+(defn- assert-css-closed!
+  "Build-time invariant: every `var(--x)` the finished page relies on is
+  actually defined in the page. The stylesheet is a trimmed closure of a
+  much larger token set, and a missing token does not fail loudly in a
+  browser -- it silently renders an unstyled console. So this is checked
+  here rather than left to a reviewer's eye."
+  [html]
+  (let [dangling (sort (remove (css-vars-defined html) (css-vars-referenced html)))]
+    (when (seq dangling)
+      (throw (ex-info (str "operator console references " (count dangling)
+                           " CSS custom propert" (if (= 1 (count dangling)) "y" "ies")
+                           " nothing defines — the page would render unstyled")
+                      {:dangling (vec dangling)})))))
 
 ;; ----------------------------- the real run -----------------------------
 
@@ -445,8 +486,8 @@
     (str
      "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"utf-8\">"
      "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">"
-     "<title>cloud-itonami-isic-9512 · commrepair operator console</title><style>"
-     (jp-go-dds.skin/dds+skin)
+     "<title>cloud-itonami-isic-9512 · commrepair operator console</title><style>\n"
+     console-css
      "</style></head>\n<body>\n"
 
      "<header class=\"bar\">\n"
@@ -560,6 +601,7 @@
       (throw (ex-info "operator console rendered 0 HARD governor holds — the scenario no longer exercises an un-overridable block, or the governor stopped blocking"
                       {:ledger-facts (count (store/ledger db))
                        :scenario-steps (count steps)})))
+    (assert-css-closed! html)
     (io/make-parents out)
     (spit out html)
     (println "wrote" out
