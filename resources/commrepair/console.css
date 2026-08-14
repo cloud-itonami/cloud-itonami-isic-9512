@@ -1,0 +1,78 @@
+/* DADS (デジタル庁デザインシステム) primitives + the shared cloud-itonami
+   operator-console skin, vendored so that `clojure -M:dev:render-html` needs
+   NO network and NO git dependency.
+
+   Provenance, both halves verifiable from this checkout:
+
+   1. The :root block below is the TRANSITIVE CLOSURE (19 of 192 tokens) of the
+      custom properties the skin below actually references, with values copied
+      from the DADS stylesheet this repo already vendors into its own product
+      face, docs/index.html. Those 192 definitions were compared against
+      jp-go-dds pin 83db9954 and are value-identical for all 192 -- so the
+      console is styled by exactly the same tokens as the product page, and
+      cannot drift away from it.
+   2. The rules after it are jp-go-dds.skin/skin-css verbatim (pin 83db9954),
+      the skin every cloud-itonami operator console shares.
+
+   Trimmed rather than wholesale-vendored on purpose: shipping all 192 tokens
+   plus the full 67KB dds.css to reference 19 of them made the page 80% CSS.
+   commrepair.render-html asserts at build time that every var() this page
+   uses is defined here, so trimming can never silently unstyle the console. */
+
+:root{
+  --color-key-900: var(--color-primitive-blue-900);
+  --color-neutral-solid-gray-200: #cccccc;
+  --color-neutral-solid-gray-300: #b3b3b3;
+  --color-neutral-solid-gray-50: #f2f2f2;
+  --color-neutral-solid-gray-600: #666666;
+  --color-neutral-solid-gray-800: #333333;
+  --color-neutral-solid-gray-900: #1a1a1a;
+  --color-neutral-white: #ffffff;
+  --color-primitive-blue-200: #c5d7fb;
+  --color-primitive-blue-50: #e8f1fe;
+  --color-primitive-blue-900: #0017c1;
+  --color-primitive-green-800: #197a4b;
+  --color-primitive-red-800: #ec0000;
+  --color-primitive-yellow-900: #927200;
+  --color-semantic-error-1: var(--color-primitive-red-800);
+  --color-semantic-success-2: var(--color-primitive-green-800);
+  --color-semantic-warning-yellow-2: var(--color-primitive-yellow-900);
+  --font-family-mono: "Noto Sans Mono", monospace;
+  --font-family-sans: "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body { font-family: var(--font-family-sans); color: var(--color-neutral-solid-gray-800); background: var(--color-neutral-white); line-height: 1.8; max-width: 64rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+.container { max-width: 100%; margin: 0; padding: 0; }
+h1 { font-size: 2.125rem; font-weight: 700; line-height: 1.4; margin: 0 0 1rem; color: var(--color-neutral-solid-gray-900); }
+h2 { font-size: 1.5rem; font-weight: 700; line-height: 1.5; margin: 2.5rem 0 .75rem; padding-bottom: .5rem; border-bottom: 1px solid var(--color-neutral-solid-gray-200); color: var(--color-neutral-solid-gray-900); }
+h3 { font-size: 1.25rem; font-weight: 700; line-height: 1.5; margin: 1.75rem 0 .5rem; color: var(--color-neutral-solid-gray-900); }
+p { margin: 0 0 1rem; }
+ul,ol { margin: 0 0 1rem; padding-left: 1.25rem; }
+li { margin-block: .25rem; }
+a { color: var(--color-key-900); }
+.cta-button,.btn,.cta-primary,.cta-secondary { display: inline-block; text-decoration: none; font-weight: 700; padding: calc(12 / 16 * 1rem) calc(24 / 16 * 1rem); border-radius: calc(8 / 16 * 1rem); margin: .25rem .5rem .25rem 0; }
+.cta-primary,.btn.primary { background: var(--color-key-900); color: var(--color-neutral-white); border: 1px solid var(--color-key-900); }
+.cta-secondary,.btn.secondary { background: var(--color-neutral-white); color: var(--color-key-900); border: 1px solid var(--color-key-900); }
+.cta,.cta-section,.ctas { margin: 1.5rem 0; }
+table { display: block; overflow-x: auto; max-width: 100%; border-collapse: collapse; width: 100%; margin: .75rem 0 1.5rem; font-size: .875rem; }
+th,td { border: 1px solid var(--color-neutral-solid-gray-300); padding: .5rem .75rem; text-align: left; vertical-align: top; }
+th { background: var(--color-neutral-solid-gray-50); font-weight: 700; color: var(--color-neutral-solid-gray-900); }
+code,pre { font-family: var(--font-family-mono); }
+code { background: var(--color-neutral-solid-gray-50); border: 1px solid var(--color-neutral-solid-gray-200); border-radius: 4px; padding: 1px 5px; font-size: .9em; }
+pre { background: var(--color-neutral-solid-gray-50); border: 1px solid var(--color-neutral-solid-gray-200); border-radius: 8px; padding: 1rem; overflow-x: auto; font-size: .8125rem; line-height: 1.7; }
+pre code { background: none; border: 0; padding: 0; }
+.ok { color: var(--color-semantic-success-2); font-weight: 700; }
+.warn { color: var(--color-semantic-warning-yellow-2); font-weight: 700; }
+.err,.critical { color: var(--color-semantic-error-1); font-weight: 700; }
+.critical-cell { background: var(--color-semantic-error-1); color: var(--color-neutral-white); font-weight: 700; }
+.muted { color: var(--color-neutral-solid-gray-600); font-weight: 400; }
+.card,.banner,.pitch,.note,.problem,.differentiator,.what-not,.offer-list,.links,.links-section { border: 1px solid var(--color-neutral-solid-gray-200); border-radius: 12px; padding: 1.25rem 1.5rem; margin: 1.25rem 0; background: var(--color-neutral-white); }
+.banner,.note { background: var(--color-neutral-solid-gray-50); }
+.card>:first-child,.banner>:first-child,.pitch>:first-child { margin-top: 0; }
+.card>:last-child,.banner>:last-child,.pitch>:last-child { margin-bottom: 0; }
+.badge,.isic-badge,.tag,.classification { display: inline-block; font-size: .8125rem; font-weight: 700; padding: .1rem .625rem; border-radius: 1rem; background: var(--color-primitive-blue-50); color: var(--color-key-900); border: 1px solid var(--color-primitive-blue-200); }
+.bar { display: flex; align-items: center; gap: .75rem; padding: .75rem 0; margin-bottom: 1rem; border-bottom: 1px solid var(--color-neutral-solid-gray-200); }
+.subtitle { color: var(--color-neutral-solid-gray-600); margin: 0 0 1rem; }
+.num,.amt { font-family: var(--font-family-mono); font-variant-numeric: tabular-nums; }
+footer,.footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--color-neutral-solid-gray-200); color: var(--color-neutral-solid-gray-600); font-size: .875rem; }
+img,svg { max-width: 100%; height: auto; }

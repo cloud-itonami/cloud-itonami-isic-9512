@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>cloud-itonami-isic-9512 · commrepair operator console</title><style>
+/* DADS (デジタル庁デザインシステム) primitives + the shared cloud-itonami
+   operator-console skin, vendored so that `clojure -M:dev:render-html` needs
+   NO network and NO git dependency.
+
+   Provenance, both halves verifiable from this checkout:
+
+   1. The :root block below is the TRANSITIVE CLOSURE (19 of 192 tokens) of the
+      custom properties the skin below actually references, with values copied
+      from the DADS stylesheet this repo already vendors into its own product
+      face, docs/index.html. Those 192 definitions were compared against
+      jp-go-dds pin 83db9954 and are value-identical for all 192 -- so the
+      console is styled by exactly the same tokens as the product page, and
+      cannot drift away from it.
+   2. The rules after it are jp-go-dds.skin/skin-css verbatim (pin 83db9954),
+      the skin every cloud-itonami operator console shares.
+
+   Trimmed rather than wholesale-vendored on purpose: shipping all 192 tokens
+   plus the full 67KB dds.css to reference 19 of them made the page 80% CSS.
+   commrepair.render-html asserts at build time that every var() this page
+   uses is defined here, so trimming can never silently unstyle the console. */
+
+:root{
+  --color-key-900: var(--color-primitive-blue-900);
+  --color-neutral-solid-gray-200: #cccccc;
+  --color-neutral-solid-gray-300: #b3b3b3;
+  --color-neutral-solid-gray-50: #f2f2f2;
+  --color-neutral-solid-gray-600: #666666;
+  --color-neutral-solid-gray-800: #333333;
+  --color-neutral-solid-gray-900: #1a1a1a;
+  --color-neutral-white: #ffffff;
+  --color-primitive-blue-200: #c5d7fb;
+  --color-primitive-blue-50: #e8f1fe;
+  --color-primitive-blue-900: #0017c1;
+  --color-primitive-green-800: #197a4b;
+  --color-primitive-red-800: #ec0000;
+  --color-primitive-yellow-900: #927200;
+  --color-semantic-error-1: var(--color-primitive-red-800);
+  --color-semantic-success-2: var(--color-primitive-green-800);
+  --color-semantic-warning-yellow-2: var(--color-primitive-yellow-900);
+  --font-family-mono: "Noto Sans Mono", monospace;
+  --font-family-sans: "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body { font-family: var(--font-family-sans); color: var(--color-neutral-solid-gray-800); background: var(--color-neutral-white); line-height: 1.8; max-width: 64rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+.container { max-width: 100%; margin: 0; padding: 0; }
+h1 { font-size: 2.125rem; font-weight: 700; line-height: 1.4; margin: 0 0 1rem; color: var(--color-neutral-solid-gray-900); }
+h2 { font-size: 1.5rem; font-weight: 700; line-height: 1.5; margin: 2.5rem 0 .75rem; padding-bottom: .5rem; border-bottom: 1px solid var(--color-neutral-solid-gray-200); color: var(--color-neutral-solid-gray-900); }
+h3 { font-size: 1.25rem; font-weight: 700; line-height: 1.5; margin: 1.75rem 0 .5rem; color: var(--color-neutral-solid-gray-900); }
+p { margin: 0 0 1rem; }
+ul,ol { margin: 0 0 1rem; padding-left: 1.25rem; }
+li { margin-block: .25rem; }
+a { color: var(--color-key-900); }
+.cta-button,.btn,.cta-primary,.cta-secondary { display: inline-block; text-decoration: none; font-weight: 700; padding: calc(12 / 16 * 1rem) calc(24 / 16 * 1rem); border-radius: calc(8 / 16 * 1rem); margin: .25rem .5rem .25rem 0; }
+.cta-primary,.btn.primary { background: var(--color-key-900); color: var(--color-neutral-white); border: 1px solid var(--color-key-900); }
+.cta-secondary,.btn.secondary { background: var(--color-neutral-white); color: var(--color-key-900); border: 1px solid var(--color-key-900); }
+.cta,.cta-section,.ctas { margin: 1.5rem 0; }
+table { display: block; overflow-x: auto; max-width: 100%; border-collapse: collapse; width: 100%; margin: .75rem 0 1.5rem; font-size: .875rem; }
+th,td { border: 1px solid var(--color-neutral-solid-gray-300); padding: .5rem .75rem; text-align: left; vertical-align: top; }
+th { background: var(--color-neutral-solid-gray-50); font-weight: 700; color: var(--color-neutral-solid-gray-900); }
+code,pre { font-family: var(--font-family-mono); }
+code { background: var(--color-neutral-solid-gray-50); border: 1px solid var(--color-neutral-solid-gray-200); border-radius: 4px; padding: 1px 5px; font-size: .9em; }
+pre { background: var(--color-neutral-solid-gray-50); border: 1px solid var(--color-neutral-solid-gray-200); border-radius: 8px; padding: 1rem; overflow-x: auto; font-size: .8125rem; line-height: 1.7; }
+pre code { background: none; border: 0; padding: 0; }
+.ok { color: var(--color-semantic-success-2); font-weight: 700; }
+.warn { color: var(--color-semantic-warning-yellow-2); font-weight: 700; }
+.err,.critical { color: var(--color-semantic-error-1); font-weight: 700; }
+.critical-cell { background: var(--color-semantic-error-1); color: var(--color-neutral-white); font-weight: 700; }
+.muted { color: var(--color-neutral-solid-gray-600); font-weight: 400; }
+.card,.banner,.pitch,.note,.problem,.differentiator,.what-not,.offer-list,.links,.links-section { border: 1px solid var(--color-neutral-solid-gray-200); border-radius: 12px; padding: 1.25rem 1.5rem; margin: 1.25rem 0; background: var(--color-neutral-white); }
+.banner,.note { background: var(--color-neutral-solid-gray-50); }
+.card>:first-child,.banner>:first-child,.pitch>:first-child { margin-top: 0; }
+.card>:last-child,.banner>:last-child,.pitch>:last-child { margin-bottom: 0; }
+.badge,.isic-badge,.tag,.classification { display: inline-block; font-size: .8125rem; font-weight: 700; padding: .1rem .625rem; border-radius: 1rem; background: var(--color-primitive-blue-50); color: var(--color-key-900); border: 1px solid var(--color-primitive-blue-200); }
+.bar { display: flex; align-items: center; gap: .75rem; padding: .75rem 0; margin-bottom: 1rem; border-bottom: 1px solid var(--color-neutral-solid-gray-200); }
+.subtitle { color: var(--color-neutral-solid-gray-600); margin: 0 0 1rem; }
+.num,.amt { font-family: var(--font-family-mono); font-variant-numeric: tabular-nums; }
+footer,.footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--color-neutral-solid-gray-200); color: var(--color-neutral-solid-gray-600); font-size: .875rem; }
+img,svg { max-width: 100%; height: auto; }</style></head>
+<body>
+<header class="bar">
+  <h1>Repair of communication equipment (ISIC 9512) — Operator Console</h1>
+  <span class="badge">generated by <code>commrepair.render-html</code> from a real <code>langgraph</code> actor run · governor-gated · repair completion and device return are always a human call</span>
+</header>
+<main>
+  <section class="card">
+    <h2>Repair tickets</h2>
+    <p class="muted">The seed directory in <code>commrepair.store/demo-data</code>, after this run. Parts cost is recomputed independently by <code>commrepair.registry/compute-parts-cost</code> — the claim is never trusted.</p>
+    <table>
+      <thead><tr><th>Ticket</th><th>Customer</th><th>Device</th><th>Jurisdiction</th><th>Parts (qty × unit vs claim)</th><th>Post-repair safety test</th><th>Customer-data consent</th><th>Lifecycle</th><th>Last op</th></tr></thead>
+      <tbody>
+        <tr><td><code>ticket-1</code></td><td>Sakura Tanaka</td><td>Smartphone (battery replacement)</td><td>JPN</td><td>2 × 15 = 30.0 vs claimed 30.0 <span class="ok">match</span></td><td><span class="ok">passed</span></td><td><span class="ok">confirmed</span></td><td><span class="ok">repaired &amp; returned</span></td><td><span class="critical">HARD hold · already-returned</span></td></tr>
+        <tr><td><code>ticket-2</code></td><td>Atlantis Doe</td><td>Two-way radio</td><td>ATL</td><td>1 × 40 = 40.0 vs claimed 40.0 <span class="ok">match</span></td><td><span class="ok">passed</span></td><td><span class="ok">confirmed</span></td><td><span class="muted">in repair</span></td><td><span class="critical">HARD hold · no-spec-basis</span></td></tr>
+        <tr><td><code>ticket-3</code></td><td>鈴木一郎</td><td>Smartphone (screen replacement)</td><td>JPN</td><td>2 × 15 = 30.0 vs claimed 50.0 <span class="critical">mismatch</span></td><td><span class="ok">passed</span></td><td><span class="ok">confirmed</span></td><td><span class="muted">in repair</span></td><td><span class="critical">HARD hold · parts-cost-mismatch</span></td></tr>
+        <tr><td><code>ticket-4</code></td><td>田中花子</td><td>Smartphone (charging-port repair)</td><td>JPN</td><td>1 × 20 = 20.0 vs claimed 20.0 <span class="ok">match</span></td><td><span class="critical">FAILED</span></td><td><span class="ok">confirmed</span></td><td><span class="muted">in repair</span></td><td><span class="critical">HARD hold · safety-test-not-passed</span></td></tr>
+        <tr><td><code>ticket-5</code></td><td>佐藤次郎</td><td>Smartphone (data-recovery diagnostics)</td><td>JPN</td><td>1 × 20 = 20.0 vs claimed 20.0 <span class="ok">match</span></td><td><span class="ok">passed</span></td><td><span class="critical">UNCONFIRMED</span></td><td><span class="muted">in repair</span></td><td><span class="critical">HARD hold · customer-data-consent-unconfirmed</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h2>Action gate — Repair Shop Governor × rollout phase</h2>
+    <p class="muted">Derived from <code>commrepair.phase/phases</code> and the stake the advisor actually attached during this run. <code>:repair/complete</code> and <code>:device/return</code> are absent from every phase's <code>:auto</code> set AND are members of <code>commrepair.governor/high-stakes</code> — two independent layers agree that actuation is always a human call.</p>
+    <table>
+      <thead><tr><th>Op</th><th>Phases that may write</th><th>Phases that may auto-commit</th><th>Stake observed this run</th></tr></thead>
+      <tbody>
+        <tr><td><code>:jurisdiction/assess</code></td><td>2, 3</td><td><span class="warn">never — human approval at every phase</span></td><td><span class="muted">none</span></td></tr>
+        <tr><td><code>:repair/complete</code></td><td>3</td><td><span class="warn">never — human approval at every phase</span></td><td><code>:actuation/complete-repair</code> <span class="warn">high-stakes</span></td></tr>
+        <tr><td><code>:ticket/intake</code></td><td>1, 2, 3</td><td><span class="ok">3</span></td><td><span class="muted">none</span></td></tr>
+        <tr><td><code>:device/return</code></td><td>3</td><td><span class="warn">never — human approval at every phase</span></td><td><code>:actuation/return-device</code> <span class="warn">high-stakes</span></td></tr>
+        <tr><td><code>:safety/screen</code></td><td>2, 3</td><td><span class="warn">never — human approval at every phase</span></td><td><span class="muted">none</span></td></tr>
+        <tr><td><code>:dataconsent/screen</code></td><td>2, 3</td><td><span class="warn">never — human approval at every phase</span></td><td><span class="muted">none</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h2>HARD governor holds — 7 this run</h2>
+    <p class="muted">Un-overridable. A human approver never sees these: <code>commrepair.phase/gate</code> keeps a governor hold a hold at every phase, so the graph routes straight from <code>:decide</code> to <code>:hold</code> without ever reaching <code>:request-approval</code>.</p>
+    <table>
+      <thead><tr><th>Op</th><th>Ticket</th><th>Rule</th><th>Detail</th><th>Advisor confidence</th><th>Actor</th><th>Overridable?</th></tr></thead>
+      <tbody>
+        <tr><td><code>:repair/complete</code></td><td><code>ticket-1</code></td><td><span class="critical">evidence-incomplete</span></td><td>法域の必要書類(故障診断書/使用部品記録/安全試験記録/顧客データ同意記録等)が充足していない状態での提案</td><td>0.9</td><td>op-1</td><td><span class="critical">no — HARD</span></td></tr>
+        <tr><td><code>:jurisdiction/assess</code></td><td><code>ticket-2</code></td><td><span class="critical">no-spec-basis</span></td><td>公式spec-basisの引用が無い提案は法域要件として扱えない</td><td>0.9</td><td>op-1</td><td><span class="critical">no — HARD</span></td></tr>
+        <tr><td><code>:repair/complete</code></td><td><code>ticket-3</code></td><td><span class="critical">parts-cost-mismatch</span></td><td>ticket-3 の申告部品代金(50.0)が独立再計算値(30.0)と一致しない</td><td>0.3</td><td>op-1</td><td><span class="critical">no — HARD</span></td></tr>
+        <tr><td><code>:safety/screen</code></td><td><code>ticket-4</code></td><td><span class="critical">safety-test-not-passed</span></td><td>修理後安全試験に合格していない機器を返却する提案は進められない</td><td>0.95</td><td>op-1</td><td><span class="critical">no — HARD</span></td></tr>
+        <tr><td><code>:dataconsent/screen</code></td><td><code>ticket-5</code></td><td><span class="critical">customer-data-consent-unconfirmed</span></td><td>顧客個人データへのアクセスに関する同意が未確認の状態での修理完了/返却提案は進められない</td><td>0.95</td><td>op-1</td><td><span class="critical">no — HARD</span></td></tr>
+        <tr><td><code>:repair/complete</code></td><td><code>ticket-1</code></td><td><span class="critical">already-completed</span></td><td>ticket-1 は既に修理完了済み</td><td>0.9</td><td>op-1</td><td><span class="critical">no — HARD</span></td></tr>
+        <tr><td><code>:device/return</code></td><td><code>ticket-1</code></td><td><span class="critical">already-returned</span></td><td>ticket-1 は既に返却済み</td><td>0.9</td><td>op-1</td><td><span class="critical">no — HARD</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h2>Approved &amp; committed path — and what the store keeps of it</h2>
+    <p class="muted">Measured, not asserted: for every committed record this run, the approver is looked for at three points — granted by the human on resume, handed to the store on the record's <code>:payload</code>, and read back out of the SSoT through the <code>Store</code> protocol afterwards. <strong>6</strong> human approvals were granted; <strong>4</strong> survive in the SSoT; <strong>2</strong> were dropped; and <strong>0</strong> are recorded in the persisted audit ledger. <span class="critical">This is a real defect in this actor, derived here rather than described: <code>commrepair.store</code>'s own docstring promises the ledger answers &quot;approved by whom&quot;, but <code>commit-record!</code> drops the approver for <code>mark-completed</code>, <code>mark-returned</code> (it drafts the registry record from <code>:path</code> and never reads <code>:payload</code>), and the <code>:approval-granted</code> fact <code>commrepair.operation</code> emits stays in the run's <code>:audit</code> channel — only <code>:commit</code> and <code>:hold</code> write to <code>store/ledger</code>. These counts are computed at render time, so this notice disappears on its own once the store retains the approver.</span></p>
+    <table>
+      <thead><tr><th>Op</th><th>Ticket</th><th>Effect</th><th>Approved by (this run)</th><th>Handed to store (:payload)</th><th>Retained in SSoT</th></tr></thead>
+      <tbody>
+        <tr><td><code>:ticket/intake</code></td><td><code>ticket-1</code></td><td><code>:ticket/upsert</code></td><td><span class="muted">not required — auto-commit at phase 3</span></td><td><span class="muted">—</span></td><td><span class="muted">n/a — nobody approved</span></td></tr>
+        <tr><td><code>:jurisdiction/assess</code></td><td><code>ticket-1</code></td><td><code>:assessment/set</code></td><td><span class="ok">op-1</span></td><td><span class="ok">op-1</span></td><td><span class="ok">op-1</span></td></tr>
+        <tr><td><code>:safety/screen</code></td><td><code>ticket-1</code></td><td><code>:safety-screening/set</code></td><td><span class="ok">op-1</span></td><td><span class="ok">op-1</span></td><td><span class="ok">op-1</span></td></tr>
+        <tr><td><code>:dataconsent/screen</code></td><td><code>ticket-1</code></td><td><code>:dataconsent-screening/set</code></td><td><span class="ok">op-1</span></td><td><span class="ok">op-1</span></td><td><span class="ok">op-1</span></td></tr>
+        <tr><td><code>:repair/complete</code></td><td><code>ticket-1</code></td><td><code>:ticket/mark-completed</code></td><td><span class="ok">op-1</span></td><td><span class="ok">op-1</span></td><td><span class="critical">dropped by <code>commit-record!</code></span></td></tr>
+        <tr><td><code>:device/return</code></td><td><code>ticket-1</code></td><td><code>:ticket/mark-returned</code></td><td><span class="ok">op-1</span></td><td><span class="ok">op-1</span></td><td><span class="critical">dropped by <code>commit-record!</code></span></td></tr>
+        <tr><td><code>:jurisdiction/assess</code></td><td><code>ticket-3</code></td><td><code>:assessment/set</code></td><td><span class="ok">op-1</span></td><td><span class="ok">op-1</span></td><td><span class="ok">op-1</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h2>Jurisdiction spec-basis coverage</h2>
+    <p class="muted"><code>commrepair.facts/catalog</code> reports coverage honestly: a jurisdiction with no entry has NO spec-basis, and the governor holds any proposal that tries to invent one. cloud-itonami-isic-9512 R0: 4 jurisdictions seeded with an official spec-basis. This is a starting catalog, not a survey of all ~194 jurisdictions -- extend `commrepair.facts/catalog`, never fabricate a jurisdiction's requirements.</p>
+    <table>
+      <thead><tr><th>ISO3</th><th>Jurisdiction</th><th>Required evidence</th><th>Owner authority</th><th>Provenance</th><th>Seed tickets</th></tr></thead>
+      <tbody>
+        <tr><td><code>ATL</code></td><td><span class="muted">—</span></td><td><span class="critical">no spec-basis — proposals HARD-held</span></td><td><span class="muted">—</span></td><td><span class="muted">—</span></td><td>1</td></tr>
+        <tr><td><code>DEU</code></td><td>Germany</td><td><span class="ok">4 evidence items</span></td><td>Marktüberwachungsbehörden der Länder / Landesdatenschutzbehörden</td><td>https://www.datenschutzkonferenz-online.de/</td><td>0</td></tr>
+        <tr><td><code>GBR</code></td><td>United Kingdom</td><td><span class="ok">4 evidence items</span></td><td>Office for Product Safety and Standards (OPSS) / Information Commissioner's Office (ICO)</td><td>https://ico.org.uk/</td><td>0</td></tr>
+        <tr><td><code>JPN</code></td><td>Japan</td><td><span class="ok">4 evidence items</span></td><td>経済産業省 (METI) / 個人情報保護委員会 (Personal Information Protection Commission)</td><td>https://www.ppc.go.jp/</td><td>4</td></tr>
+        <tr><td><code>USA</code></td><td>United States</td><td><span class="ok">4 evidence items</span></td><td>U.S. Consumer Product Safety Commission (CPSC) / Federal Trade Commission (FTC)</td><td>https://www.ftc.gov/reports/nixing-fix-ftc-report-congress-repair-restrictions</td><td>0</td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h2>Registry drafts — 1 repair completions, 1 device returns</h2>
+    <p class="muted">Built by <code>commrepair.registry</code> as pure functions. Every certificate is UNSIGNED: signature is the repair shop's act, not this actor's.</p>
+    <table>
+      <thead><tr><th>Record id</th><th>Kind</th><th>Ticket</th><th>Jurisdiction</th><th>Record</th><th>Certificate</th></tr></thead>
+      <tbody>
+        <tr><td><code>JPN-RPR-000000</code></td><td>repair-completion-draft</td><td><code>ticket-1</code></td><td>JPN</td><td><span class="ok">immutable</span></td><td><span class="warn">draft-unsigned</span></td></tr>
+        <tr><td><code>JPN-RTN-000000</code></td><td>device-return-draft</td><td><code>ticket-1</code></td><td>JPN</td><td><span class="ok">immutable</span></td><td><span class="warn">draft-unsigned</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h2>Audit ledger — 14 facts this run</h2>
+    <p class="muted">Append-only. Every proposal that committed or was held, in order.</p>
+    <table>
+      <thead><tr><th>#</th><th>Fact</th><th>Op</th><th>Ticket</th><th>Disposition</th><th>Basis</th><th>Summary / detail</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td><span class="ok">committed</span></td><td><code>:ticket/intake</code></td><td><code>ticket-1</code></td><td>commit</td><td>id / customer</td><td>修理票記録更新: (:id :customer)</td></tr>
+        <tr><td>1</td><td><span class="critical">governor-hold</span></td><td><code>:repair/complete</code></td><td><code>ticket-1</code></td><td>hold</td><td>evidence-incomplete</td><td>法域の必要書類(故障診断書/使用部品記録/安全試験記録/顧客データ同意記録等)が充足していない状態での提案</td></tr>
+        <tr><td>2</td><td><span class="ok">committed</span></td><td><code>:jurisdiction/assess</code></td><td><code>ticket-1</code></td><td>commit</td><td>消費生活用製品安全法 (Consumer Product Safety Act); 個人情報保護法 (Act on the Protection of Personal Information) -- 修理受託時の個人情報取扱い / https://www.ppc.go.jp/</td><td>JPN (経済産業省 (METI) / 個人情報保護委員会 (Personal Information Protection Commission)) 向け必要書類 4 件を提案</td></tr>
+        <tr><td>3</td><td><span class="ok">committed</span></td><td><code>:safety/screen</code></td><td><code>ticket-1</code></td><td>commit</td><td>safety-check</td><td>Sakura Tanaka: 安全試験合格</td></tr>
+        <tr><td>4</td><td><span class="ok">committed</span></td><td><code>:dataconsent/screen</code></td><td><code>ticket-1</code></td><td>commit</td><td>dataconsent-check</td><td>Sakura Tanaka: 顧客データアクセス同意を確認</td></tr>
+        <tr><td>5</td><td><span class="ok">committed</span></td><td><code>:repair/complete</code></td><td><code>ticket-1</code></td><td>commit</td><td>ticket-1</td><td>ticket-1 向け修理完了提案 (customer=Sakura Tanaka)</td></tr>
+        <tr><td>6</td><td><span class="ok">committed</span></td><td><code>:device/return</code></td><td><code>ticket-1</code></td><td>commit</td><td>ticket-1</td><td>ticket-1 向け返却提案 (customer=Sakura Tanaka)</td></tr>
+        <tr><td>7</td><td><span class="critical">governor-hold</span></td><td><code>:jurisdiction/assess</code></td><td><code>ticket-2</code></td><td>hold</td><td>no-spec-basis</td><td>公式spec-basisの引用が無い提案は法域要件として扱えない</td></tr>
+        <tr><td>8</td><td><span class="ok">committed</span></td><td><code>:jurisdiction/assess</code></td><td><code>ticket-3</code></td><td>commit</td><td>消費生活用製品安全法 (Consumer Product Safety Act); 個人情報保護法 (Act on the Protection of Personal Information) -- 修理受託時の個人情報取扱い / https://www.ppc.go.jp/</td><td>JPN (経済産業省 (METI) / 個人情報保護委員会 (Personal Information Protection Commission)) 向け必要書類 4 件を提案</td></tr>
+        <tr><td>9</td><td><span class="critical">governor-hold</span></td><td><code>:repair/complete</code></td><td><code>ticket-3</code></td><td>hold</td><td>parts-cost-mismatch</td><td>ticket-3 の申告部品代金(50.0)が独立再計算値(30.0)と一致しない</td></tr>
+        <tr><td>10</td><td><span class="critical">governor-hold</span></td><td><code>:safety/screen</code></td><td><code>ticket-4</code></td><td>hold</td><td>safety-test-not-passed</td><td>修理後安全試験に合格していない機器を返却する提案は進められない</td></tr>
+        <tr><td>11</td><td><span class="critical">governor-hold</span></td><td><code>:dataconsent/screen</code></td><td><code>ticket-5</code></td><td>hold</td><td>customer-data-consent-unconfirmed</td><td>顧客個人データへのアクセスに関する同意が未確認の状態での修理完了/返却提案は進められない</td></tr>
+        <tr><td>12</td><td><span class="critical">governor-hold</span></td><td><code>:repair/complete</code></td><td><code>ticket-1</code></td><td>hold</td><td>already-completed</td><td>ticket-1 は既に修理完了済み</td></tr>
+        <tr><td>13</td><td><span class="critical">governor-hold</span></td><td><code>:device/return</code></td><td><code>ticket-1</code></td><td>hold</td><td>already-returned</td><td>ticket-1 は既に返却済み</td></tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+<footer>
+  <p class="muted">Regenerate with <code>clojure -M:dev:render-html</code>. Deterministic: no timestamps, no randomness, every map iteration sorted — two consecutive runs are byte-identical.</p>
+</footer>
+</body>
+</html>

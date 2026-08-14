@@ -1,0 +1,620 @@
+(ns commrepair.render-html
+  "Build-time HTML renderer for `docs/samples/operator-console.html`.
+
+  Closes flagship checklist item 2 for `cloud-itonami-isic-9512`: this
+  repo had a product face (`docs/index.html`) but NO operator console
+  and no generator at all.
+
+  Every number, id, customer name, jurisdiction, hold reason and
+  registry draft on the rendered page is produced by driving the REAL
+  actor stack --
+
+      commrepair.operation (langgraph StateGraph)
+        -> commrepair.repairopsllm  (contained advisor)
+        -> commrepair.governor      (independent censor)
+        -> commrepair.phase         (rollout gate)
+        -> commrepair.store         (SSoT + append-only ledger)
+
+  -- through `langgraph.graph/run*`, exactly the way this repo's own
+  demo driver `commrepair.sim` (`clojure -M:dev:run`) does. The
+  scenario below was run FIRST with `clojure -M:dev:run` and its real
+  output read, so the ticket ids (`ticket-1`..`ticket-5`), customers,
+  parts arithmetic and hold reasons here are the seed set in
+  `commrepair.store/demo-data` and the verdicts are what
+  `commrepair.governor` actually returns -- nothing on the page is
+  hand-typed domain vocabulary.
+
+  Determinism: the store is freshly seeded per run, the advisor is the
+  deterministic mock, no timestamp or random value reaches the page,
+  and every map iteration (`commrepair.facts/catalog`,
+  `commrepair.phase/phases`, `commrepair.phase/write-ops`) is sorted
+  explicitly. Two consecutive runs are byte-identical.
+
+  Offline: the stylesheet is this repo's own
+  `resources/commrepair/console.css` -- DADS tokens copied from the copy
+  already vendored into `docs/index.html` plus the shared console skin --
+  so the build has no network or git dependency, and the console cannot
+  drift away from the product face. Two build-time invariants guard the
+  output: at least one HARD governor hold, and CSS custom-property
+  closure (see `assert-css-closed!`).
+
+  Usage: `clojure -M:dev:render-html [out-file]`
+  (default `docs/samples/operator-console.html`)."
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str]
+            [langgraph.graph :as g]
+            [commrepair.facts :as facts]
+            [commrepair.governor :as governor]
+            [commrepair.operation :as op]
+            [commrepair.phase :as phase]
+            [commrepair.registry :as registry]
+            [commrepair.store :as store]))
+
+;; ----------------------------- style -----------------------------
+
+(def ^:private console-css
+  "DADS primitives + the shared operator-console skin, read from this
+  repo's own `resources/commrepair/console.css`.
+
+  Deliberately NOT a `jp-go-dds` git dependency. The values there were
+  copied out of the DADS stylesheet this repo already vendors into
+  `docs/index.html`, so the console is styled by the same tokens as the
+  product face and the build needs no network at all. `assert-css-closed!`
+  keeps that honest at build time."
+  (let [r (io/resource "commrepair/console.css")]
+    (when-not r
+      (throw (ex-info "resources/commrepair/console.css is not on the classpath — the console would render unstyled"
+                      {:resource "commrepair/console.css"})))
+    (slurp r)))
+
+(defn- css-vars-referenced [s] (set (re-seq #"(?<=var\()--[A-Za-z0-9-]+" s)))
+(defn- css-vars-defined [s] (set (re-seq #"--[A-Za-z0-9-]+(?=\s*:)" s)))
+
+(defn- assert-css-closed!
+  "Build-time invariant: every `var(--x)` the finished page relies on is
+  actually defined in the page. The stylesheet is a trimmed closure of a
+  much larger token set, and a missing token does not fail loudly in a
+  browser -- it silently renders an unstyled console. So this is checked
+  here rather than left to a reviewer's eye."
+  [html]
+  (let [dangling (sort (remove (css-vars-defined html) (css-vars-referenced html)))]
+    (when (seq dangling)
+      (throw (ex-info (str "operator console references " (count dangling)
+                           " CSS custom propert" (if (= 1 (count dangling)) "y" "ies")
+                           " nothing defines — the page would render unstyled")
+                      {:dangling (vec dangling)})))))
+
+;; ----------------------------- the real run -----------------------------
+
+(def ^:private operator
+  "The same operator context this repo's own `commrepair.sim` injects."
+  {:actor-id "op-1" :actor-role :repair-technician :phase 3})
+
+(defn- exec! [actor tid request]
+  (g/run* actor {:request request :context operator} {:thread-id tid}))
+
+(defn- approve! [actor tid]
+  (g/run* actor {:approval {:status :approved :by "op-1"}}
+          {:thread-id tid :resume? true}))
+
+(def ^:private scenario
+  "[thread-id request approve?] -- one row per graph run.
+
+  Mixes every disposition this actor can reach, against the REAL seed
+  tickets:
+
+    ticket-1 (Sakura Tanaka, JPN, 2 x 15 = claimed 30.0, safety test
+      passed, consent confirmed) walks a full clean lifecycle: intake
+      (auto-commits -- the only op in phase 3's `:auto` set),
+      jurisdiction assessment, post-repair safety screening, customer-
+      data-consent screening, repair completion and device return.
+      The last two ALWAYS escalate to a human: `:actuation/complete-
+      repair` / `:actuation/return-device` are in `governor/high-
+      stakes` AND are absent from every phase's `:auto` set -- two
+      independent layers, deliberately.
+
+    ticket-2 (Atlantis Doe, jurisdiction ATL) HARD-holds a
+      jurisdiction assessment: ATL has no entry in `commrepair.facts/
+      catalog`, so there is no official spec-basis to cite.
+
+    ticket-3 (鈴木一郎, JPN) clears its own assessment, then HARD-holds
+      a repair completion: its claimed parts cost (50.0) does not
+      equal the independently recomputed parts-quantity x parts-unit-
+      price (2 x 15 = 30.0).
+
+    ticket-4 (田中花子) HARD-holds a safety screening that itself
+      detects a failed post-repair safety test.
+
+    ticket-5 (佐藤次郎) HARD-holds a data-consent screening that
+      itself detects an unconfirmed customer-data-access consent.
+
+    ticket-1 is then re-completed and re-returned to exercise the
+      double-actuation guards.
+
+  Between them these cover ALL SEVEN of `commrepair.governor`'s
+  un-overridable checks, one hold each -- the console is meant to show
+  the whole shape of what this actor refuses, not a sample of it.
+
+  `approve?` is false for every step the governor HARD-holds -- those
+  never reach the approval node at all, which is the point."
+  [["s01" {:op :ticket/intake :subject "ticket-1"
+           :patch {:id "ticket-1" :customer "Sakura Tanaka"}}  false]
+   ;; deliberately BEFORE s02: with no assessment on file yet, JPN's
+   ;; required evidence cannot be satisfied, so this HARD-holds on
+   ;; `:evidence-incomplete` alone. A hold writes no ticket state, so
+   ;; ticket-1's clean lifecycle below is unaffected.
+   ["s01b" {:op :repair/complete :subject "ticket-1"}          false]
+   ["s02" {:op :jurisdiction/assess :subject "ticket-1"}       true]
+   ["s03" {:op :safety/screen :subject "ticket-1"}             true]
+   ["s04" {:op :dataconsent/screen :subject "ticket-1"}        true]
+   ["s05" {:op :repair/complete :subject "ticket-1"}           true]
+   ["s06" {:op :device/return :subject "ticket-1"}             true]
+   ["s07" {:op :jurisdiction/assess :subject "ticket-2"
+           :no-spec? true}                                     false]
+   ["s08" {:op :jurisdiction/assess :subject "ticket-3"}       true]
+   ["s09" {:op :repair/complete :subject "ticket-3"}           false]
+   ["s10" {:op :safety/screen :subject "ticket-4"}             false]
+   ["s11" {:op :dataconsent/screen :subject "ticket-5"}        false]
+   ["s12" {:op :repair/complete :subject "ticket-1"}           false]
+   ["s13" {:op :device/return :subject "ticket-1"}             false]])
+
+(defn run-demo!
+  "Runs `scenario` through a freshly seeded store and one real
+  OperationActor. Returns `{:db store :steps [{:thread-id .. :request
+  .. :state ..} ..]}` where `:state` is the graph's FINAL state for
+  that thread (after the human approval resume, where there was one).
+  Every field the renderer reads comes out of these two values."
+  []
+  (let [db (store/seed-db)
+        actor (op/build db)]
+    {:db db
+     :steps (reduce (fn [acc [tid request approve?]]
+                      (let [paused (exec! actor tid request)
+                            final  (if approve? (approve! actor tid) paused)]
+                        (conj acc {:thread-id tid
+                                   :request request
+                                   :state (:state final)})))
+                    []
+                    scenario)}))
+
+;; ----------------------------- derivations -----------------------------
+
+(defn- key-name [k] (if (keyword? k) (name k) (str k)))
+
+(defn- approver-in
+  "Any approver-ish field on a stored value, whatever a future fix
+  chooses to call it (`:approved-by`, `\"approved_by\"`, ...).
+
+  Scanning by key NAME rather than one fixed key is deliberate: it is
+  what makes the retention measurement below self-correcting. The day
+  `commrepair.store/commit-record!` starts carrying the approver onto
+  a completion/return record, the page's own rows flip from `dropped`
+  to `retained` with no edit to this file. Sorted so the answer does
+  not depend on map ordering."
+  [m]
+  (when (map? m)
+    (some (fn [[k v]]
+            (when (and (str/includes? (str/lower-case (key-name k)) "approv")
+                       (string? v)
+                       (seq v))
+              v))
+          (sort-by (comp str key) m))))
+
+(defn- record-for
+  "The append-only registry draft for `ticket-id`, or nil."
+  [history ticket-id]
+  (first (filter #(= ticket-id (get % "ticket_id")) history)))
+
+(defn- stored-approver
+  "Reads the approver back OUT of the SSoT for a committed record,
+  through the `Store` protocol only -- so this reports what the store
+  ACTUALLY retained, not what the actor handed it."
+  [db {:keys [effect path]}]
+  (let [subject (first path)]
+    (case effect
+      :ticket/upsert             (approver-in (store/ticket db subject))
+      :assessment/set            (approver-in (store/assessment-of db subject))
+      :safety-screening/set      (approver-in (store/safety-screening-of db subject))
+      :dataconsent-screening/set (approver-in (store/dataconsent-screening-of db subject))
+      :ticket/mark-completed     (approver-in (record-for (store/completion-history db) subject))
+      :ticket/mark-returned      (approver-in (record-for (store/return-history db) subject))
+      nil)))
+
+(def ^:private approval-fact-types
+  "Ledger fact types that would carry an approver identity into the
+  PERSISTED audit log. `commrepair.operation`'s `:request-approval`
+  node emits `:approval-granted` into the run's `:audit` channel, but
+  only the `:commit` and `:hold` nodes write to `store/ledger` -- so
+  whether any of these survive is a measurement, not an assumption."
+  #{:approval-granted})
+
+(defn- committed-steps
+  "Every scenario step whose FINAL disposition was `:commit`, with the
+  approver measured at three points: granted by the human on resume,
+  handed to the store on the record's `:payload`, and readable back
+  out of the SSoT afterwards."
+  [db steps]
+  (for [{:keys [thread-id request state]} steps
+        :when (= :commit (:disposition state))
+        :let [record   (:record state)
+              approval (:approval state)
+              granted  (when (= :approved (:status approval)) (:by approval))]]
+    {:thread-id thread-id
+     :op (:op request)
+     :subject (:subject request)
+     :effect (:effect record)
+     :granted granted
+     :handed (approver-in (:payload record))
+     :retained (stored-approver db record)
+     ;; derived from the actor's OWN gate, not asserted here: does a
+     ;; clean governor verdict for this op still need a human at the
+     ;; phase this run used?
+     :approval-required?
+     (= :escalate (:disposition (phase/gate (:phase operator) request :commit)))}))
+
+(defn- hard-hold-rows
+  "One row per (governor-hold fact, violation) pair in the PERSISTED
+  ledger. A `:governor-hold` fact with a non-empty `:violations` is by
+  construction a HARD hold -- `commrepair.governor/check` only
+  populates `:violations` from its seven un-overridable checks, and
+  `commrepair.phase/gate` keeps a governor hold a hold at every
+  phase."
+  [db]
+  (vec (for [f (store/ledger db)
+             :when (and (= :governor-hold (:t f)) (seq (:violations f)))
+             v (:violations f)]
+         {:op (:op f) :subject (:subject f) :actor (:actor f)
+          :confidence (:confidence f)
+          :rule (:rule v) :detail (:detail v)})))
+
+(defn- phases-where
+  "Sorted phases whose `k` set (`:writes` / `:auto`) contains `op`."
+  [k op]
+  (->> (keys phase/phases)
+       sort
+       (filterv #(contains? (get-in phase/phases [% k]) op))))
+
+(defn- observed-stakes
+  "op -> the `:stake` the advisor actually attached this run. Measured,
+  so an op that stops being high-stakes stops being labelled one."
+  [steps]
+  (into (sorted-map)
+        (for [{:keys [request state]} steps
+              :let [stake (get-in state [:proposal :stake])]
+              :when stake]
+          [(:op request) stake])))
+
+;; ----------------------------- html -----------------------------
+
+(defn- esc [v]
+  (-> (str v)
+      (str/replace "&" "&amp;")
+      (str/replace "<" "&lt;")
+      (str/replace ">" "&gt;")))
+
+(defn- code [v] (str "<code>" (esc v) "</code>"))
+
+(defn- basis-str [basis]
+  (str/join " / " (map key-name basis)))
+
+(defn- row [cells]
+  (str "        <tr>"
+       (str/join (map #(str "<td>" % "</td>") cells))
+       "</tr>"))
+
+(defn- table [headers rows]
+  (str "    <table>\n"
+       "      <thead><tr>"
+       (str/join (map #(str "<th>" (esc %) "</th>") headers))
+       "</tr></thead>\n"
+       "      <tbody>\n"
+       (str/join "\n" rows)
+       "\n      </tbody>\n"
+       "    </table>\n"))
+
+(defn- section [title note body]
+  (str "  <section class=\"card\">\n"
+       "    <h2>" (esc title) "</h2>\n"
+       "    <p class=\"muted\">" note "</p>\n"
+       body
+       "  </section>\n"))
+
+;; --- ticket directory ---
+
+(defn- last-fact-for [ledger ticket-id]
+  (last (filter #(= ticket-id (:subject %)) ledger)))
+
+(defn- status-cell [ledger ticket-id]
+  (let [f (last-fact-for ledger ticket-id)]
+    (cond
+      (nil? f) "<span class=\"muted\">no activity</span>"
+      (= :governor-hold (:t f))
+      (str "<span class=\"critical\">HARD hold · "
+           (esc (basis-str (:basis f))) "</span>")
+      (= :committed (:t f))
+      (str "<span class=\"ok\">committed · " (esc (key-name (:op f))) "</span>")
+      :else (str "<span class=\"warn\">" (esc (key-name (:t f))) "</span>"))))
+
+(defn- lifecycle-cell [{:keys [repair-completed? device-returned?]}]
+  (cond
+    device-returned?  "<span class=\"ok\">repaired &amp; returned</span>"
+    repair-completed? "<span class=\"warn\">repaired, not yet returned</span>"
+    :else             "<span class=\"muted\">in repair</span>"))
+
+(defn- parts-cell [t]
+  (let [computed (registry/compute-parts-cost t)
+        ok? (registry/parts-cost-matches-claim? t)]
+    (str (esc (:parts-quantity t)) " × " (esc (:parts-unit-price t))
+         " = " (esc computed)
+         " vs claimed " (esc (:claimed-parts-cost t)) " "
+         (if ok?
+           "<span class=\"ok\">match</span>"
+           "<span class=\"critical\">mismatch</span>"))))
+
+(defn- flag [ok? yes no]
+  (if ok?
+    (str "<span class=\"ok\">" (esc yes) "</span>")
+    (str "<span class=\"critical\">" (esc no) "</span>")))
+
+(defn- ticket-rows [db ledger]
+  (mapv (fn [t]
+          (row [(code (:id t))
+                (esc (:customer t))
+                (esc (:device t))
+                (esc (:jurisdiction t))
+                (parts-cell t)
+                (flag (:safety-test-passed? t) "passed" "FAILED")
+                (flag (:customer-data-consent-confirmed? t) "confirmed" "UNCONFIRMED")
+                (lifecycle-cell t)
+                (status-cell ledger (:id t))]))
+        (store/all-tickets db)))
+
+;; --- action gate ---
+
+(defn- gate-rows [steps]
+  (let [stakes (observed-stakes steps)]
+    (mapv (fn [o]
+            (let [writes (phases-where :writes o)
+                  autos  (phases-where :auto o)
+                  stake  (get stakes o)]
+              (row [(code o)
+                    (if (seq writes) (esc (str/join ", " writes))
+                        "<span class=\"muted\">none</span>")
+                    (if (seq autos)
+                      (str "<span class=\"ok\">" (esc (str/join ", " autos)) "</span>")
+                      "<span class=\"warn\">never — human approval at every phase</span>")
+                    (if stake
+                      (str (code stake)
+                           (if (contains? governor/high-stakes stake)
+                             " <span class=\"warn\">high-stakes</span>"
+                             ""))
+                      "<span class=\"muted\">none</span>")])))
+          (sort-by key-name phase/write-ops))))
+
+;; --- approval trail ---
+
+(defn- approval-rows [rows]
+  (mapv (fn [{:keys [op subject effect granted handed retained approval-required?]}]
+          (row [(code op)
+                (code subject)
+                (code effect)
+                (cond
+                  granted (str "<span class=\"ok\">" (esc granted) "</span>")
+                  approval-required?
+                  "<span class=\"critical\">approval required but none recorded</span>"
+                  :else
+                  "<span class=\"muted\">not required — auto-commit at phase 3</span>")
+                (if handed
+                  (str "<span class=\"ok\">" (esc handed) "</span>")
+                  "<span class=\"muted\">—</span>")
+                (cond
+                  retained (str "<span class=\"ok\">" (esc retained) "</span>")
+                  (nil? granted) "<span class=\"muted\">n/a — nobody approved</span>"
+                  :else
+                  (str "<span class=\"critical\">dropped by "
+                       (code "commit-record!") "</span>"))]))
+        rows))
+
+;; --- HARD holds ---
+
+(defn- hold-rows [rows]
+  (mapv (fn [{:keys [op subject actor rule detail confidence]}]
+          (row [(code op)
+                (code subject)
+                (str "<span class=\"critical\">" (esc (key-name rule)) "</span>")
+                (esc detail)
+                (esc confidence)
+                (esc actor)
+                "<span class=\"critical\">no — HARD</span>"]))
+        rows))
+
+;; --- ledger ---
+
+(defn- ledger-rows [ledger]
+  (vec (map-indexed
+        (fn [i f]
+          (row [(esc i)
+                (if (= :governor-hold (:t f))
+                  (str "<span class=\"critical\">" (esc (key-name (:t f))) "</span>")
+                  (str "<span class=\"ok\">" (esc (key-name (:t f))) "</span>"))
+                (code (:op f))
+                (code (:subject f))
+                (esc (key-name (:disposition f)))
+                (esc (basis-str (:basis f)))
+                (esc (or (:summary f)
+                         (str/join " / " (map :detail (:violations f)))))]))
+        ledger)))
+
+;; --- jurisdictions ---
+
+(defn- jurisdiction-rows [db]
+  (let [used (frequencies (map :jurisdiction (store/all-tickets db)))
+        seen (sort (distinct (concat (keys facts/catalog) (keys used))))]
+    (mapv (fn [iso3]
+            (let [sb (facts/spec-basis iso3)]
+              (row [(code iso3)
+                    (if sb (esc (:name sb)) "<span class=\"muted\">—</span>")
+                    (if sb
+                      (str "<span class=\"ok\">" (esc (count (:required-evidence sb)))
+                           " evidence items</span>")
+                      "<span class=\"critical\">no spec-basis — proposals HARD-held</span>")
+                    (if sb (esc (:owner-authority sb)) "<span class=\"muted\">—</span>")
+                    (if sb (esc (:provenance sb)) "<span class=\"muted\">—</span>")
+                    (esc (get used iso3 0))])))
+          seen)))
+
+;; --- registry drafts ---
+
+(defn- draft-rows [history kind]
+  (mapv (fn [r]
+          (row [(code (get r "record_id"))
+                (esc kind)
+                (code (get r "ticket_id"))
+                (esc (get r "jurisdiction"))
+                (if (get r "immutable")
+                  "<span class=\"ok\">immutable</span>"
+                  "<span class=\"warn\">mutable</span>")
+                "<span class=\"warn\">draft-unsigned</span>"]))
+        history))
+
+;; ----------------------------- document -----------------------------
+
+(defn render
+  "Renders the whole console from a store `db` and the scenario
+  `steps` that `run-demo!` produced."
+  [db steps]
+  (let [ledger        (vec (store/ledger db))
+        holds         (hard-hold-rows db)
+        committed     (vec (committed-steps db steps))
+        approvals     (filterv :granted committed)
+        retained      (filterv :retained approvals)
+        dropped       (filterv (complement :retained) approvals)
+        ledger-appr   (count (filter (comp approval-fact-types :t) ledger))
+        completions   (store/completion-history db)
+        returns       (store/return-history db)]
+    (str
+     "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"utf-8\">"
+     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">"
+     "<title>cloud-itonami-isic-9512 · commrepair operator console</title><style>\n"
+     console-css
+     "</style></head>\n<body>\n"
+
+     "<header class=\"bar\">\n"
+     "  <h1>Repair of communication equipment (ISIC 9512) — Operator Console</h1>\n"
+     "  <span class=\"badge\">generated by <code>commrepair.render-html</code> from a real "
+     "<code>langgraph</code> actor run · governor-gated · repair completion and device return "
+     "are always a human call</span>\n"
+     "</header>\n"
+     "<main>\n"
+
+     (section
+      "Repair tickets"
+      (str "The seed directory in <code>commrepair.store/demo-data</code>, after this run. "
+           "Parts cost is recomputed independently by "
+           "<code>commrepair.registry/compute-parts-cost</code> — the claim is never trusted.")
+      (table ["Ticket" "Customer" "Device" "Jurisdiction" "Parts (qty × unit vs claim)"
+              "Post-repair safety test" "Customer-data consent" "Lifecycle" "Last op"]
+             (ticket-rows db ledger)))
+
+     (section
+      "Action gate — Repair Shop Governor × rollout phase"
+      (str "Derived from <code>commrepair.phase/phases</code> and the stake the advisor actually "
+           "attached during this run. <code>:repair/complete</code> and <code>:device/return</code> "
+           "are absent from every phase's <code>:auto</code> set AND are members of "
+           "<code>commrepair.governor/high-stakes</code> — two independent layers agree that "
+           "actuation is always a human call.")
+      (table ["Op" "Phases that may write" "Phases that may auto-commit" "Stake observed this run"]
+             (gate-rows steps)))
+
+     (section
+      (str "HARD governor holds — " (count holds) " this run")
+      (str "Un-overridable. A human approver never sees these: "
+           "<code>commrepair.phase/gate</code> keeps a governor hold a hold at every phase, so the "
+           "graph routes straight from <code>:decide</code> to <code>:hold</code> without ever "
+           "reaching <code>:request-approval</code>.")
+      (table ["Op" "Ticket" "Rule" "Detail" "Advisor confidence" "Actor" "Overridable?"]
+             (hold-rows holds)))
+
+     (section
+      ;; `section` escapes the title, so this is written raw.
+      "Approved & committed path — and what the store keeps of it"
+      (str "Measured, not asserted: for every committed record this run, the approver is looked for "
+           "at three points — granted by the human on resume, handed to the store on the record's "
+           "<code>:payload</code>, and read back out of the SSoT through the "
+           "<code>Store</code> protocol afterwards. "
+           "<strong>" (count approvals) "</strong> human approvals were granted; "
+           "<strong>" (count retained) "</strong> survive in the SSoT; "
+           "<strong>" (count dropped) "</strong> were dropped; and "
+           "<strong>" ledger-appr "</strong> are recorded in the persisted audit ledger. "
+           (if (or (seq dropped) (and (pos? (count approvals)) (zero? ledger-appr)))
+             (str "<span class=\"critical\">This is a real defect in this actor, derived here rather "
+                  "than described: <code>commrepair.store</code>'s own docstring promises the ledger "
+                  "answers &quot;approved by whom&quot;, but "
+                  (when (seq dropped)
+                    (str "<code>commit-record!</code> drops the approver for "
+                         (str/join ", " (map #(str "<code>" (key-name (:effect %)) "</code>")
+                                             (sort-by (comp key-name :effect) dropped)))
+                         " (it drafts the registry record from <code>:path</code> and never reads "
+                         "<code>:payload</code>), and "))
+                  "the <code>:approval-granted</code> fact "
+                  "<code>commrepair.operation</code> emits stays in the run's <code>:audit</code> "
+                  "channel — only <code>:commit</code> and <code>:hold</code> write to "
+                  "<code>store/ledger</code>. These counts are computed at render time, so this "
+                  "notice disappears on its own once the store retains the approver.</span>")
+             "<span class=\"ok\">Every granted approval survives in the persisted record.</span>"))
+      (table ["Op" "Ticket" "Effect" "Approved by (this run)"
+              "Handed to store (:payload)" "Retained in SSoT"]
+             (approval-rows committed)))
+
+     (section
+      "Jurisdiction spec-basis coverage"
+      (str "<code>commrepair.facts/catalog</code> reports coverage honestly: a jurisdiction with no "
+           "entry has NO spec-basis, and the governor holds any proposal that tries to invent one. "
+           (esc (:note (facts/coverage))))
+      (table ["ISO3" "Jurisdiction" "Required evidence" "Owner authority" "Provenance"
+              "Seed tickets"]
+             (jurisdiction-rows db)))
+
+     (section
+      (str "Registry drafts — " (count completions) " repair completions, "
+           (count returns) " device returns")
+      (str "Built by <code>commrepair.registry</code> as pure functions. Every certificate is "
+           "UNSIGNED: signature is the repair shop's act, not this actor's.")
+      (table ["Record id" "Kind" "Ticket" "Jurisdiction" "Record" "Certificate"]
+             (into (draft-rows completions "repair-completion-draft")
+                   (draft-rows returns "device-return-draft"))))
+
+     (section
+      (str "Audit ledger — " (count ledger) " facts this run")
+      "Append-only. Every proposal that committed or was held, in order."
+      (table ["#" "Fact" "Op" "Ticket" "Disposition" "Basis" "Summary / detail"]
+             (ledger-rows ledger)))
+
+     "</main>\n"
+     "<footer>\n"
+     "  <p class=\"muted\">Regenerate with <code>clojure -M:dev:render-html</code>. "
+     "Deterministic: no timestamps, no randomness, every map iteration sorted — two consecutive "
+     "runs are byte-identical.</p>\n"
+     "</footer>\n"
+     "</body>\n</html>\n")))
+
+(defn -main [& args]
+  (let [out (or (first args) "docs/samples/operator-console.html")
+        {:keys [db steps]} (run-demo!)
+        holds (hard-hold-rows db)
+        html (render db steps)]
+    ;; Build-time invariant, not a convention: a console that shows no
+    ;; un-overridable governor block is not showing this actor's whole
+    ;; behaviour, and must not ship.
+    (when (zero? (count holds))
+      (throw (ex-info "operator console rendered 0 HARD governor holds — the scenario no longer exercises an un-overridable block, or the governor stopped blocking"
+                      {:ledger-facts (count (store/ledger db))
+                       :scenario-steps (count steps)})))
+    (assert-css-closed! html)
+    (io/make-parents out)
+    (spit out html)
+    (println "wrote" out
+             (str "(" (count holds) " HARD holds, "
+                  (count (store/ledger db)) " ledger facts, "
+                  (count (store/completion-history db)) " repair completions, "
+                  (count (store/return-history db)) " device returns)"))))
