@@ -2514,7 +2514,7 @@ img,svg { max-width: 100%; height: auto; }</style></head>
     </table>
   </section>
   <section class="card">
-    <h2>Approved &amp;amp; committed path — and what the store keeps of it</h2>
+    <h2>Approved &amp; committed path — and what the store keeps of it</h2>
     <p class="muted">Measured, not asserted: for every committed record this run, the approver is looked for at three points — granted by the human on resume, handed to the store on the record's <code>:payload</code>, and read back out of the SSoT through the <code>Store</code> protocol afterwards. <strong>6</strong> human approvals were granted; <strong>4</strong> survive in the SSoT; <strong>2</strong> were dropped; and <strong>0</strong> are recorded in the persisted audit ledger. <span class="critical">This is a real defect in this actor, derived here rather than described: <code>commrepair.store</code>'s own docstring promises the ledger answers &quot;approved by whom&quot;, but <code>commit-record!</code> drops the approver for <code>mark-completed</code>, <code>mark-returned</code> (it drafts the registry record from <code>:path</code> and never reads <code>:payload</code>), and the <code>:approval-granted</code> fact <code>commrepair.operation</code> emits stays in the run's <code>:audit</code> channel — only <code>:commit</code> and <code>:hold</code> write to <code>store/ledger</code>. These counts are computed at render time, so this notice disappears on its own once the store retains the approver.</span></p>
     <table>
       <thead><tr><th>Op</th><th>Ticket</th><th>Effect</th><th>Approved by (this run)</th><th>Handed to store (:payload)</th><th>Retained in SSoT</th></tr></thead>

@@ -486,7 +486,8 @@
              (hold-rows holds)))
 
      (section
-      "Approved &amp; committed path — and what the store keeps of it"
+      ;; `section` escapes the title, so this is written raw.
+      "Approved & committed path — and what the store keeps of it"
       (str "Measured, not asserted: for every committed record this run, the approver is looked for "
            "at three points — granted by the human on resume, handed to the store on the record's "
            "<code>:payload</code>, and read back out of the SSoT through the "
