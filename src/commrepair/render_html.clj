@@ -131,10 +131,19 @@
     ticket-1 is then re-completed and re-returned to exercise the
       double-actuation guards.
 
+  Between them these cover ALL SEVEN of `commrepair.governor`'s
+  un-overridable checks, one hold each -- the console is meant to show
+  the whole shape of what this actor refuses, not a sample of it.
+
   `approve?` is false for every step the governor HARD-holds -- those
   never reach the approval node at all, which is the point."
   [["s01" {:op :ticket/intake :subject "ticket-1"
            :patch {:id "ticket-1" :customer "Sakura Tanaka"}}  false]
+   ;; deliberately BEFORE s02: with no assessment on file yet, JPN's
+   ;; required evidence cannot be satisfied, so this HARD-holds on
+   ;; `:evidence-incomplete` alone. A hold writes no ticket state, so
+   ;; ticket-1's clean lifecycle below is unaffected.
+   ["s01b" {:op :repair/complete :subject "ticket-1"}          false]
    ["s02" {:op :jurisdiction/assess :subject "ticket-1"}       true]
    ["s03" {:op :safety/screen :subject "ticket-1"}             true]
    ["s04" {:op :dataconsent/screen :subject "ticket-1"}        true]
