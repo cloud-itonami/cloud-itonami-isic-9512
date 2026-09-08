@@ -41,7 +41,7 @@
   Usage: `clojure -M:dev:render-html [out-file]`
   (default `docs/samples/operator-console.html`)."
   (:require [clojure.java.io :as io]
-            [clojure.string :as str]
+            [kotoba.lang.text :as str]
             [langgraph.graph :as g]
             [commrepair.facts :as facts]
             [commrepair.governor :as governor]
@@ -194,7 +194,7 @@
   [m]
   (when (map? m)
     (some (fn [[k v]]
-            (when (and (str/includes? (str/lower-case (key-name k)) "approv")
+            (when (and (str/includes? (str/lower (key-name k)) "approv")
                        (string? v)
                        (seq v))
               v))

@@ -28,7 +28,7 @@
   returning a device itself (that is `commrepair.operation`'s
   `:repair/complete`/`:device/return`, always human-gated -- see
   README `Actuation`)."
-  (:require [clojure.string :as str]))
+  (:require [kotoba.lang.text :as str]))
 
 (defn- unsigned-certificate
   "Every certificate this actor produces is UNSIGNED -- signature is the
@@ -107,7 +107,7 @@
     (throw (ex-info "repair-completion: jurisdiction required" {})))
   (when (< sequence 0)
     (throw (ex-info "repair-completion: sequence must be >= 0" {})))
-  (let [completion-number (str (str/upper-case jurisdiction) "-RPR-" (zero-pad sequence 6))
+  (let [completion-number (str (str/upper jurisdiction) "-RPR-" (zero-pad sequence 6))
         record {"record_id" completion-number
                 "kind" "repair-completion-draft"
                 "ticket_id" ticket-id
@@ -132,7 +132,7 @@
     (throw (ex-info "device-return: jurisdiction required" {})))
   (when (< sequence 0)
     (throw (ex-info "device-return: sequence must be >= 0" {})))
-  (let [return-number (str (str/upper-case jurisdiction) "-RTN-" (zero-pad sequence 6))
+  (let [return-number (str (str/upper jurisdiction) "-RTN-" (zero-pad sequence 6))
         record {"record_id" return-number
                 "kind" "device-return-draft"
                 "ticket_id" ticket-id
