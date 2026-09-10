@@ -137,7 +137,7 @@ independent layers enforce this (`commrepair.governor`'s `:actuation/
 complete-repair`/`:actuation/return-device` high-stakes gate and
 `commrepair.phase`'s phase table, which never puts either op in any
 phase's `:auto` set) -- see `commrepair.phase`'s docstring and
-`test/commrepair/phase_test.clj`'s `repair-complete-never-auto-at-
+`test/commrepair/phase_test.kotoba`'s `repair-complete-never-auto-at-
 any-phase`/`device-return-never-auto-at-any-phase`. The actor may
 draft, check and recommend; a human repair technician is always the
 one who actually completes a repair or returns a device. Grounded
@@ -228,14 +228,14 @@ stack only -- no bespoke domain capability lib to reference at all.
 
 | File | Role |
 |---|---|
-| `src/commrepair/store.cljc` | **Store** protocol -- `MemStore` ‖ `DatomicStore` (`langchain.db`) + append-only audit ledger + repair-completion AND device-return history (dual history, mirroring `repairshop`/9521's own shape). The double-actuation guard checks dedicated `:repair-completed?`/`:device-returned?` booleans rather than a `:status` value |
-| `src/commrepair/registry.cljc` | Repair-completion/device-return draft records, plus `parts-cost-matches-claim?` -- an HONEST, literal reuse of `repairshop.registry`'s own EXACT-MATCH independent-recompute check for the SAME real-world concern, not claimed as new |
-| `src/commrepair/facts.cljc` | Per-jurisdiction consumer-product-safety AND data-protection catalog (a genuine extension beyond `repairshop.facts`'s own product-safety-only catalog) with an official spec-basis citation per entry, honest coverage reporting |
-| `src/commrepair/repairopsllm.cljc` | **RepairOps-LLM** -- `mock-advisor` ‖ `llm-advisor`; intake/jurisdiction-assessment/safety-screening/data-consent-screening/repair-completion/device-return proposals |
-| `src/commrepair/governor.cljc` | **Repair Shop Governor** -- 7 HARD checks (spec-basis · evidence-incomplete · parts-cost-mismatch, honest reuse of `repairshop`'s own check · safety-test-not-passed, honest reuse of `repairshop`'s own check · customer-data-consent-unconfirmed, unconditional evaluation, GENUINELY NEW, the 61st grounding of this discipline · already-completed guard · already-returned guard) + 1 soft (confidence/actuation gate) |
-| `src/commrepair/phase.cljc` | **Phase 0→3** -- read-only → assisted intake → assisted assess → supervised (repair completion/device return always human; ticket intake is the ONLY auto-eligible op, no direct capital risk) |
-| `src/commrepair/operation.cljc` | **OperationActor** -- langgraph-clj StateGraph |
-| `src/commrepair/sim.cljc` | demo driver |
+| `src/commrepair/store.kotoba` | **Store** protocol -- `MemStore` ‖ `DatomicStore` (`langchain.db`) + append-only audit ledger + repair-completion AND device-return history (dual history, mirroring `repairshop`/9521's own shape). The double-actuation guard checks dedicated `:repair-completed?`/`:device-returned?` booleans rather than a `:status` value |
+| `src/commrepair/registry.kotoba` | Repair-completion/device-return draft records, plus `parts-cost-matches-claim?` -- an HONEST, literal reuse of `repairshop.registry`'s own EXACT-MATCH independent-recompute check for the SAME real-world concern, not claimed as new |
+| `src/commrepair/facts.kotoba` | Per-jurisdiction consumer-product-safety AND data-protection catalog (a genuine extension beyond `repairshop.facts`'s own product-safety-only catalog) with an official spec-basis citation per entry, honest coverage reporting |
+| `src/commrepair/repairopsllm.kotoba` | **RepairOps-LLM** -- `mock-advisor` ‖ `llm-advisor`; intake/jurisdiction-assessment/safety-screening/data-consent-screening/repair-completion/device-return proposals |
+| `src/commrepair/governor.kotoba` | **Repair Shop Governor** -- 7 HARD checks (spec-basis · evidence-incomplete · parts-cost-mismatch, honest reuse of `repairshop`'s own check · safety-test-not-passed, honest reuse of `repairshop`'s own check · customer-data-consent-unconfirmed, unconditional evaluation, GENUINELY NEW, the 61st grounding of this discipline · already-completed guard · already-returned guard) + 1 soft (confidence/actuation gate) |
+| `src/commrepair/phase.kotoba` | **Phase 0→3** -- read-only → assisted intake → assisted assess → supervised (repair completion/device return always human; ticket intake is the ONLY auto-eligible op, no direct capital risk) |
+| `src/commrepair/operation.kotoba` | **OperationActor** -- langgraph-clj StateGraph |
+| `src/commrepair/sim.kotoba` | demo driver |
 | `test/commrepair/*_test.clj` | governor contract · phase invariants · store parity · registry conformance · facts coverage |
 
 ## Business-process coverage (honest)
