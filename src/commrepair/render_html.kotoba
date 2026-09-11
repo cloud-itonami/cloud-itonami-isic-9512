@@ -16,8 +16,8 @@
         -> commrepair.store         (SSoT + append-only ledger)
 
   -- through `langgraph.graph/run*`, exactly the way this repo's own
-  demo driver `commrepair.sim` (`clojure -M:dev:run`) does. The
-  scenario below was run FIRST with `clojure -M:dev:run` and its real
+  demo driver `commrepair.sim` (`kbb -M:dev:run`) does. The
+  scenario below was run FIRST with `kbb -M:dev:run` and its real
   output read, so the ticket ids (`ticket-1`..`ticket-5`), customers,
   parts arithmetic and hold reasons here are the seed set in
   `commrepair.store/demo-data` and the verdicts are what
@@ -38,7 +38,7 @@
   output: at least one HARD governor hold, and CSS custom-property
   closure (see `assert-css-closed!`).
 
-  Usage: `clojure -M:dev:render-html [out-file]`
+  Usage: `kbb -M:dev:render-html [out-file]`
   (default `docs/samples/operator-console.html`)."
   (:require [clojure.java.io :as io]
             [kotoba.lang.text :as str]
@@ -592,7 +592,7 @@
 
      "</main>\n"
      "<footer>\n"
-     "  <p class=\"muted\">Regenerate with <code>clojure -M:dev:render-html</code>. "
+     "  <p class=\"muted\">Regenerate with <code>kbb -M:dev:render-html</code>. "
      "Deterministic: no timestamps, no randomness, every map iteration sorted — two consecutive "
      "runs are byte-identical.</p>\n"
      "</footer>\n"
