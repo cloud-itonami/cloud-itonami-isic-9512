@@ -1,5 +1,5 @@
 /* DADS (デジタル庁デザインシステム) primitives + the shared cloud-itonami
-   operator-console skin, vendored so that `clojure -M:dev:render-html` needs
+   operator-console skin, vendored so that `kbb -M:dev:render-html` needs
    NO network and NO git dependency.
 
    Provenance, both halves verifiable from this checkout:

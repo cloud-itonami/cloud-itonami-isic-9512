@@ -11,7 +11,7 @@
  ;; should override them with git coordinates.
  ;; NOTE: deliberately no jp-go-dds dependency. The operator console needs 19
  ;; DADS custom properties; taking them as a git dep pulled 67KB of stylesheet
- ;; to use 19 tokens AND made `clojure -M:dev:render-html` network-dependent.
+ ;; to use 19 tokens AND made `kbb -M:dev:render-html` network-dependent.
  ;; The tokens are vendored instead (resources/commrepair/console.css), copied
  ;; from the DADS copy this repo already ships inside docs/index.html, and
  ;; commrepair.render-html asserts CSS-variable closure at build time.
@@ -27,9 +27,9 @@
   :dev {:override-deps
         {io.github.kotoba-lang/langchain
          {:local/root "../../kotoba-lang/langchain"}}}
-  ;; clojure -M:dev:run  -> drive the demo through one OperationActor
+  ;; kbb -M:dev:run  -> drive the demo through one OperationActor
   :run {:main-opts ["-m" "commrepair.sim"]}
-  ;; clojure -M:dev:render-html [out-file] -> regenerate
+  ;; kbb -M:dev:render-html [out-file] -> regenerate
   ;; docs/samples/operator-console.html by driving the REAL actor stack
   ;; (flagship checklist item 2). Throws if the run produces no HARD
   ;; governor hold, so the console can never ship showing only the happy path.
